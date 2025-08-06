@@ -14,24 +14,21 @@ problemRouter.delete("/delete/:id",adminMiddleware, deleteProblem);
 // Test Judge0 API connection
 problemRouter.get("/test-judge0", async (req, res) => {
   try {
-    const { submitBatch } = require("../utils/problemUtility");
+    const { testJudge0Connection } = require("../utils/problemUtility");
     
-    // Simple test submission
-    const testSubmission = [{
-      source_code: "print('Hello, World!')",
-      language_id: 63, // JavaScript
-      stdin: "",
-      expected_output: "Hello, World!"
-    }];
-    
-    const result = await submitBatch(testSubmission);
-    res.json({ success: true, result });
+    const isWorking = await testJudge0Connection();
+    if (isWorking) {
+      res.json({ success: true, message: "Judge0 API is working correctly" });
+    } else {
+      res.status(500).json({ success: false, message: "Judge0 API test failed" });
+    }
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
 });
 
 problemRouter.get("/problemById/:id",userMiddleware,getProblemById);
+problemRouter.get("/problemById/:id/admin",adminMiddleware,getProblemById); // Admin route for getting problem details
 problemRouter.get("/getAllProblem", getAllProblem); // Removed userMiddleware to allow public access
 problemRouter.get("/problemSolvedByUser",userMiddleware, solvedAllProblembyUser);
 problemRouter.get("/submittedProblem/:pid",userMiddleware,submittedProblem);

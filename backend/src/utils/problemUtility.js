@@ -14,8 +14,10 @@ const getLanguageById = (lang)=>{
         "js":63
     }
 
-
+    console.log(`Getting language ID for: "${lang}"`);
     const languageId = language[lang];
+    console.log(`Language ID result: ${languageId}`);
+    
     if (!languageId) {
         throw new Error(`Unsupported language: ${lang}. Supported languages are: C++, Java, JavaScript`);
     }
@@ -30,18 +32,34 @@ if (!process.env.JUDGE0_KEY) {
     throw new Error("JUDGE0_KEY environment variable is not set");
 }
 
-console.log("Submitting to Judge0 API:", {
-  submissionsCount: submissions.length,
-  firstSubmission: submissions[0]
-});
-
 // Validate submissions format
 for (let i = 0; i < submissions.length; i++) {
   const submission = submissions[i];
   if (!submission.source_code || !submission.language_id) {
     throw new Error(`Invalid submission at index ${i}: missing source_code or language_id`);
   }
+  
+  // Ensure all required fields are present
+  if (typeof submission.source_code !== 'string') {
+    throw new Error(`Invalid submission at index ${i}: source_code must be a string`);
+  }
+  
+  if (typeof submission.language_id !== 'number') {
+    throw new Error(`Invalid submission at index ${i}: language_id must be a number`);
+  }
+  
+  // Make stdin and expected_output optional but ensure they're strings if present
+  if (submission.stdin && typeof submission.stdin !== 'string') {
+    throw new Error(`Invalid submission at index ${i}: stdin must be a string`);
+  }
+  
+  if (submission.expected_output && typeof submission.expected_output !== 'string') {
+    throw new Error(`Invalid submission at index ${i}: expected_output must be a string`);
+  }
 }
+
+const requestBody = { submissions };
+console.log("Submitting to Judge0 API:", JSON.stringify(requestBody, null, 2));
 
 const options = {
   method: 'POST',
@@ -54,9 +72,7 @@ const options = {
     'x-rapidapi-host': 'judge0-ce.p.rapidapi.com',
     'Content-Type': 'application/json'
   },
-  data: {
-    submissions
-  }
+  data: requestBody
 };
 
 async function fetchData() {
@@ -70,7 +86,27 @@ async function fetchData() {
 			data: error.response?.data,
 			message: error.message
 		});
-		
+    if (error.response?.data) {
+      console.error('Judge0 API error response:', JSON.stringify(error.response.data, null, 2));
+    }
+    // Try a minimal hardcoded test submission for debugging
+    try {
+      const testSubmission = [{
+        language_id: 63,
+        source_code: "print('Hello, World!')",
+        stdin: "",
+        expected_output: "Hello, World!"
+      }];
+      const testOptions = {
+        ...options,
+        data: { submissions: testSubmission }
+      };
+      console.log('Testing Judge0 API with minimal valid submission:', JSON.stringify(testOptions.data, null, 2));
+      const testResponse = await axios.request(testOptions);
+      console.log('Judge0 API minimal test response:', testResponse.data);
+    } catch (testError) {
+      console.error('Judge0 API minimal test failed:', testError.response?.data || testError.message);
+    }
 		if (error.response?.status === 401) {
 			throw new Error("Invalid Judge0 API key - please check your RapidAPI subscription");
 		} else if (error.response?.status === 429) {
@@ -165,8 +201,15 @@ const maxAttempts = 30; // 30 seconds timeout
 
 while(attempts < maxAttempts){
  const result =  await fetchData();
+ 
+ console.log("Judge0 API response structure:", {
+   hasSubmissions: !!result.submissions,
+   submissionsCount: result.submissions?.length,
+   firstSubmission: result.submissions?.[0],
+   firstSubmissionStatus: result.submissions?.[0]?.status
+ });
 
-  const IsResultObtained =  result.submissions.every((r)=>r.status_id>2);
+  const IsResultObtained =  result.submissions.every((r)=>r.status && r.status.id>2);
 
   if(IsResultObtained)
     return result.submissions;
@@ -180,7 +223,27 @@ throw new Error("Timeout waiting for Judge0 API results. Please try again or che
 }
 
 
-module.exports = {getLanguageById,submitBatch,submitToken};
+// Test function to verify Judge0 API connection
+const testJudge0Connection = async () => {
+  try {
+    const testSubmission = [{
+      source_code: "print('Hello, World!')",
+      language_id: 63, // JavaScript
+      stdin: "",
+      expected_output: "Hello, World!"
+    }];
+    
+    console.log("Testing Judge0 API connection...");
+    const result = await submitBatch(testSubmission);
+    console.log("Judge0 API test successful:", result);
+    return true;
+  } catch (error) {
+    console.error("Judge0 API test failed:", error.message);
+    return false;
+  }
+};
+
+module.exports = {getLanguageById,submitBatch,submitToken,testJudge0Connection};
 
 
 

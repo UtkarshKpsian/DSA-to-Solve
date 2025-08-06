@@ -1,6 +1,7 @@
 # Node modules
 node_modules/
 
+
 # Environment variables
 .env
 
@@ -12,3 +13,8 @@ yarn-error.log*
 # OS generated files
 .DS_Store
 Thumbs.db
+
+# Unwanted files/folders
+Leetcode-Clone.git/
+Leetcode-Clone.git.bfg-report/
+bfg-1.14.0.jar

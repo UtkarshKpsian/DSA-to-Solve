@@ -9,14 +9,24 @@ const problemRouter = require("./routes/problemCreator");
 const submitRouter = require("./routes/submit")
 const aiRouter = require("./routes/aiChatting")
 const videoRouter = require("./routes/videoCreator");
-const cors = require('cors')
+const cors = require("cors");
 
-// console.log("Hello")
+const allowedOrigins = [
+  "http://localhost:5173",                    // local dev
+  "https://dsa-to-solve.onrender.com"        // deployed frontend
+];
 
 app.use(cors({
-    origin: 'http://localhost:5173',
-    credentials: true 
-}))
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
+  credentials: true
+}));
+
 
 app.use(express.json());
 app.use(cookieParser());
