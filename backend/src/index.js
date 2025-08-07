@@ -17,8 +17,25 @@ if (!process.env.JWT_KEY) {
     process.env.JWT_KEY = "default-jwt-secret-key-for-development-only";
 }
 
+const allowedOrigins = [
+  "http://localhost:5173",                    // local dev
+  "http://localhost:3000",                    // local backend
+  "https://dsa-to-solve.onrender.com",        // deployed frontend
+  "https://dsa-to-solve.vercel.app"          // alternative deployment
+];
+
 app.use(cors({
-  origin: true, // Allow all origins in development
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.log('CORS blocked origin:', origin);
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
   credentials: true
 }));
 
