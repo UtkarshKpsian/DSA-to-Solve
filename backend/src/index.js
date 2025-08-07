@@ -54,7 +54,17 @@ app.get('/health', (req, res) => {
     res.status(200).json({ 
         status: 'OK', 
         message: 'Server is running',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        cors: 'enabled'
+    });
+});
+
+// Add a simple test endpoint for debugging
+app.get('/test', (req, res) => {
+    res.status(200).json({ 
+        message: 'Backend is working correctly',
+        timestamp: new Date().toISOString(),
+        origin: req.headers.origin || 'no origin'
     });
 });
 
