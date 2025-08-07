@@ -17,19 +17,8 @@ if (!process.env.JWT_KEY) {
     process.env.JWT_KEY = "default-jwt-secret-key-for-development-only";
 }
 
-const allowedOrigins = [
-  "http://localhost:5173",                    // local dev
-  "https://dsa-to-solve.onrender.com"        // deployed frontend
-];
-
 app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error("Not allowed by CORS"));
-    }
-  },
+  origin: true, // Allow all origins in development
   credentials: true
 }));
 
