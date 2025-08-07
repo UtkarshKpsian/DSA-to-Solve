@@ -10,7 +10,6 @@ const register = async (req,res)=>{
     
     try{
         // validate the data;
-
       validate(req.body); 
       const {firstName, emailId, password}  = req.body;
 
@@ -32,12 +31,35 @@ const register = async (req,res)=>{
      res.cookie('token',token,{maxAge: 60*60*1000});
      res.status(201).json({
         user:reply,
-        message:"Loggin Successfully"
+        message:"Registration Successful"
     })
     }
     catch(err){
         console.log("Error in registration: ", err);
-        res.status(400).send("Error: "+err);
+        
+        // Handle specific error cases
+        if (err.code === 11000) {
+            return res.status(400).json({
+                message: "Email already exists. Please use a different email."
+            });
+        }
+        
+        if (err.name === 'ValidationError') {
+            return res.status(400).json({
+                message: "Please check your input data and try again."
+            });
+        }
+        
+        // Check if it's a database connection error
+        if (err.name === 'MongoNetworkError' || err.name === 'MongoServerSelectionError') {
+            return res.status(503).json({
+                message: "Database connection error. Please try again later."
+            });
+        }
+        
+        res.status(400).json({
+            message: err.message || "Registration failed. Please try again."
+        });
     }
 }
 
@@ -48,19 +70,19 @@ const login = async (req,res)=>{
         const {emailId, password} = req.body;
 
         if(!emailId)
-            throw new Error("Invalid Credentials");
+            return res.status(400).json({ message: "Email is required" });
         if(!password)
-            throw new Error("Invalid Credentials");
+            return res.status(400).json({ message: "Password is required" });
 
         const user = await User.findOne({emailId});
 
         if(!user)
-            throw new Error("Invalid Credentials");
+            return res.status(401).json({ message: "Invalid email or password" });
 
         const match = await bcrypt.compare(password,user.password);
 
         if(!match)
-            throw new Error("Invalid Credentials");
+            return res.status(401).json({ message: "Invalid email or password" });
 
         const reply = {
             firstName: user.firstName,
@@ -71,13 +93,24 @@ const login = async (req,res)=>{
 
         const token =  jwt.sign({_id:user._id , emailId:emailId, role:user.role},process.env.JWT_KEY,{expiresIn: 60*60});
         res.cookie('token',token,{maxAge: 60*60*1000});
-        res.status(201).json({
+        res.status(200).json({
             user:reply,
-            message:"Loggin Successfully"
+            message:"Login Successful"
         })
     }
     catch(err){
-        res.status(401).send("Error: "+err);
+        console.log("Error in login: ", err);
+        
+        // Check if it's a database connection error
+        if (err.name === 'MongoNetworkError' || err.name === 'MongoServerSelectionError') {
+            return res.status(503).json({
+                message: "Database connection error. Please try again later."
+            });
+        }
+        
+        res.status(500).json({
+            message: "Login failed. Please try again."
+        });
     }
 }
 

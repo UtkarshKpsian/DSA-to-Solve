@@ -5,16 +5,23 @@ import axiosClient from './utils/axiosClient'
 const extractErrorData = (error) => {
   if (error.response) {
     // Server responded with error status
-    const errorMessage = error.response.data || 'Server error';
+    const errorData = error.response.data;
+    if (errorData && typeof errorData === 'object' && errorData.message) {
+      return {
+        message: errorData.message,
+        status: error.response.status,
+        statusText: error.response.statusText
+      };
+    }
     return {
-      message: typeof errorMessage === 'string' ? errorMessage : 'Server error',
+      message: typeof errorData === 'string' ? errorData : 'Server error',
       status: error.response.status,
       statusText: error.response.statusText
     };
   } else if (error.request) {
     // Request was made but no response received
     return {
-      message: 'Network error - no response received',
+      message: 'Network error - unable to connect to server',
       status: 0,
       statusText: 'Network Error'
     };

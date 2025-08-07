@@ -11,6 +11,12 @@ const aiRouter = require("./routes/aiChatting")
 const videoRouter = require("./routes/videoCreator");
 const cors = require("cors");
 
+// Check for required environment variables
+if (!process.env.JWT_KEY) {
+    console.warn("Warning: JWT_KEY environment variable is not set. Using default key for development.");
+    process.env.JWT_KEY = "default-jwt-secret-key-for-development-only";
+}
+
 const allowedOrigins = [
   "http://localhost:5173",                    // local dev
   "https://dsa-to-solve.onrender.com"        // deployed frontend
@@ -37,6 +43,14 @@ app.use('/submission',submitRouter);
 app.use('/ai',aiRouter);
 app.use("/video",videoRouter);
 
+// Add a health check endpoint
+app.get('/health', (req, res) => {
+    res.status(200).json({ 
+        status: 'OK', 
+        message: 'Server is running',
+        timestamp: new Date().toISOString()
+    });
+});
 
 const InitalizeConnection = async ()=>{
     try{
