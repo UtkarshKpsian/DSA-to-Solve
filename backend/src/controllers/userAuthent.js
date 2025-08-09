@@ -5,6 +5,19 @@ const bcrypt = require("bcrypt");
 const jwt = require('jsonwebtoken');
 const Submission = require("../models/submission")
 
+const cookieOptions = {
+  httpOnly: true,
+  sameSite: 'none',
+  secure: true,
+  maxAge: 60*60*1000
+};
+
+const isProd = process.env.NODE_ENV === 'production';
+if (!isProd) {
+  // In local dev over http, secure cookies won't set. Relax for dev.
+  cookieOptions.secure = false;
+  cookieOptions.sameSite = 'lax';
+}
 
 const register = async (req,res)=>{
     
@@ -28,7 +41,7 @@ const register = async (req,res)=>{
         role:user.role,
     }
     
-     res.cookie('token',token,{maxAge: 60*60*1000});
+     res.cookie('token',token,cookieOptions);
      res.status(201).json({
         user:reply,
         message:"Registration Successful"
@@ -92,7 +105,7 @@ const login = async (req,res)=>{
         }
 
         const token =  jwt.sign({_id:user._id , emailId:emailId, role:user.role},process.env.JWT_KEY,{expiresIn: 60*60});
-        res.cookie('token',token,{maxAge: 60*60*1000});
+        res.cookie('token',token,cookieOptions);
         res.status(200).json({
             user:reply,
             message:"Login Successful"
@@ -134,7 +147,7 @@ const logout = async(req,res)=>{
     //    Token add kar dung Redis ke blockList
     //    Cookies ko clear kar dena.....
 
-    res.cookie("token",null,{expires: new Date(Date.now())});
+    res.cookie("token",null,{...cookieOptions, maxAge: 0, expires: new Date(0)});
     res.send("Logged Out Succesfully");
 
     }
@@ -155,7 +168,7 @@ const adminRegister = async(req,res)=>{
     
      const user =  await User.create(req.body);
      const token =  jwt.sign({_id:user._id , emailId:emailId, role:user.role},process.env.JWT_KEY,{expiresIn: 60*60});
-     res.cookie('token',token,{maxAge: 60*60*1000});
+     res.cookie('token',token,cookieOptions);
      res.status(201).json({
         user: {
             firstName: user.firstName,

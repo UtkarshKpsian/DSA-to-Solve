@@ -11,6 +11,9 @@ const aiRouter = require("./routes/aiChatting")
 const videoRouter = require("./routes/videoCreator");
 const cors = require("cors");
 
+// Trust proxy to correctly set secure cookies behind reverse proxies (Render/Heroku/NGINX)
+app.set('trust proxy', 1);
+
 // Check for required environment variables
 if (!process.env.JWT_KEY) {
     console.warn("Warning: JWT_KEY environment variable is not set. Using default key for development.");
