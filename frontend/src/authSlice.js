@@ -39,22 +39,27 @@ export const registerUser = createAsyncThunk(
   'auth/register',
   async (userData, { rejectWithValue }) => {
     try {
-    const response =  await axiosClient.post('/user/register', userData);
-    return response.data.user;
+      console.log('Attempting to register user with data:', userData);
+      const response = await axiosClient.post('/user/register', userData);
+      console.log('Registration response:', response.data);
+      return response.data.user;
     } catch (error) {
+      console.error('Registration error:', error);
       return rejectWithValue(extractErrorData(error));
     }
   }
 );
 
-
 export const loginUser = createAsyncThunk(
     'auth/login',
   async (credentials, { rejectWithValue }) => {
     try {
+      console.log('Attempting to login user with credentials:', credentials);
       const response = await axiosClient.post('/user/login', credentials);
+      console.log('Login response:', response.data);
       return response.data.user;
     } catch (error) {
+      console.error('Login error:', error);
       return rejectWithValue(extractErrorData(error));
     }
   }
@@ -64,12 +69,31 @@ export const checkAuth = createAsyncThunk(
   'auth/check',
   async (_, { rejectWithValue }) => {
     try {
-      const { data } = await axiosClient.get('/user/check');
+      console.log('Checking authentication...');
+      
+      // Add timeout to prevent hanging
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Request timeout')), 5000)
+      );
+      
+      const authPromise = axiosClient.get('/user/check');
+      
+      const { data } = await Promise.race([authPromise, timeoutPromise]);
+      console.log('Check auth response:', data);
       return data.user;
     } catch (error) {
+      console.error('Check auth error:', error);
+      // Handle 401 (Unauthorized) gracefully - this is normal for non-authenticated users
       if (error.response?.status === 401) {
-        return rejectWithValue(null); // Special case for no session
+        console.log('User not authenticated - this is normal');
+        return rejectWithValue(null); // Special case for no session - don't show error
       }
+      // Handle timeout
+      if (error.message === 'Request timeout') {
+        console.log('Auth check timeout - treating as not authenticated');
+        return rejectWithValue(null);
+      }
+      // Only show error for other types of errors
       return rejectWithValue(extractErrorData(error));
     }
   }
@@ -145,7 +169,10 @@ const authSlice = createSlice({
       })
       .addCase(checkAuth.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload?.message || 'Something went wrong';
+        // Only set error if it's not a null case (user not authenticated)
+        if (action.payload !== null) {
+          state.error = action.payload?.message || 'Something went wrong';
+        }
         state.isAuthenticated = false;
         state.user = null;
       })
